@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Ink It · MoneyBot Games</title>
+<meta name="description" content="Write a real check, endorse one, then catch the fakes at the teller window. A free MoneyBot game that teaches students how checks work.">
+<meta name="theme-color" content="#000000">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<!-- Social previews: swap in the absolute URL once deployed, e.g. https://getmoneybot.com/games/ink-it/ -->
+<meta property="og:type" content="website">
+<meta property="og:title" content="Ink It · MoneyBot Games">
+<meta property="og:description" content="Write it. Flip it. Sign it right. Then catch the fakes before they cost you.">
+<meta property="og:image" content="https://kgarmon99.github.io/moneybot-ink-it/ink-it/assets/og-image.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800;900&display=swap">
+<link rel="stylesheet" href="css/ink-it.css">
+</head>
+<body>
+
+<!-- shared SVG defs: MoneyBot shading, stamp grit -->
+<svg class="defs" aria-hidden="true">
+  <defs>
+    <linearGradient id="shell" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset=".55" stop-color="#eeeeee"/><stop offset="1" stop-color="#b9b9b9"/></linearGradient>
+    <linearGradient id="shellB" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fafafa"/><stop offset=".6" stop-color="#e2e2e2"/><stop offset="1" stop-color="#a9a9a9"/></linearGradient>
+    <linearGradient id="pod" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#bdbdbd"/><stop offset="1" stop-color="#6e6e6e"/></linearGradient>
+    <linearGradient id="visor" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1b1b1b"/><stop offset="1" stop-color="#030303"/></linearGradient>
+    <radialGradient id="gold" cx=".4" cy=".35" r=".8"><stop offset="0" stop-color="#f6dc84"/><stop offset="1" stop-color="#b8902d"/></radialGradient>
+    <pattern id="scan" width="4" height="2.6" patternUnits="userSpaceOnUse"><rect width="4" height="1.6" fill="#00FF99"/></pattern>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="1.6" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    <filter id="grunge" x="-10%" y="-10%" width="120%" height="120%">
+      <feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="2" seed="7" result="n"/>
+      <feColorMatrix in="n" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -2.2 1.55" result="holes"/>
+      <feComposite in="SourceGraphic" in2="holes" operator="in" result="pitted"/>
+      <feTurbulence type="fractalNoise" baseFrequency=".035" numOctaves="2" seed="3" result="warp"/>
+      <feDisplacementMap in="pitted" in2="warp" scale="5" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
+    <filter id="rough"><feTurbulence type="fractalNoise" baseFrequency=".04" numOctaves="2" seed="9"/><feDisplacementMap in="SourceGraphic" scale="6" xChannelSelector="R" yChannelSelector="G"/></filter>
+  </defs>
+</svg>
+
+<canvas id="scene" aria-hidden="true"></canvas>
+
+<div id="app">
+  <header class="hud">
+    <div class="logo-sm" id="logoSm"></div>
+    <nav class="track" aria-label="Missions">
+      <div class="node" id="n1"><i><svg viewBox="0 0 24 24"><path d="M4 20l4-1 11-11-3-3L5 16z"/><path d="M14 7l3 3"/></svg></i><span>Cut the check</span></div>
+      <div class="wire" id="w1"></div>
+      <div class="node" id="n2"><i><svg viewBox="0 0 24 24"><path d="M4 9a8 8 0 0 1 14-3l2 2"/><path d="M20 4v4h-4"/><path d="M20 15a8 8 0 0 1-14 3l-2-2"/><path d="M4 20v-4h4"/></svg></i><span>Flip &amp; endorse</span></div>
+      <div class="wire" id="w2"></div>
+      <div class="node" id="n3"><i><svg viewBox="0 0 24 24"><path d="M3 10l9-6 9 6"/><path d="M5 10v8M9.5 10v8M14.5 10v8M19 10v8"/><path d="M3 20h18"/></svg></i><span>Teller rush</span></div>
+    </nav>
+    <div class="meter">
+      <button class="iconbtn" id="pauseBtn" type="button" aria-label="Pause menu"><svg viewBox="0 0 24 24"><rect x="6" y="5" width="4" height="14" rx="1.2"/><rect x="14" y="5" width="4" height="14" rx="1.2"/></svg></button>
+      <div class="lives" id="lives" hidden></div>
+      <span class="streak" id="streak">x1.2</span>
+      <div class="xpbox">
+        <div class="xprow"><span class="xp-num" id="xp">0</span><span class="xp-tag">XP</span></div>
+        <div class="xpbar"><i id="xpFill"></i></div>
+        <span class="rank" id="rankTxt">Rookie Signer</span>
+      </div>
+    </div>
+  </header>
+
+  <section class="comms">
+    <div class="botwrap" id="botMain"></div>
+    <div class="bubble" aria-live="polite"><span class="who">MoneyBot <span id="sub" style="color:#0A5C2E;font-weight:600;letter-spacing:.08em"></span></span><span id="say">Big moves incoming.</span></div>
+    <div class="cards">
+      <div class="card glass" id="todayCard"><span class="label">Today</span><span class="big" id="todayTxt"></span></div>
+      <div class="card glass queue" id="queueCard" hidden><span class="label">Teller 03 · Now serving</span><span class="big" id="queueTxt"></span></div>
+      <div class="card glass bill" id="billCard" hidden><span class="label" id="billHead">Bill to pay</span><span class="big" id="billTo"></span><span class="sm" id="billFor"></span><span class="amt" id="billAmt"></span></div>
+    </div>
+  </section>
+
+  <main class="stage" id="stage">
+    <div class="counter"></div>
+    <div class="cam" id="cam">
+    <div class="check" id="check" hidden>
+      <div class="paper"></div><div class="band"></div><div class="perf"></div>
+      <div class="micro t" id="microT"></div><div class="micro b" id="microB"></div>
+      <svg class="wm" viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="44" fill="none" stroke="#000" stroke-width="5"/><circle cx="50" cy="50" r="30" fill="none" stroke="#000" stroke-width="3"/><path d="M50 20v60M20 50h60M29 29l42 42M71 29L29 71" stroke="#000" stroke-width="3"/><circle cx="50" cy="50" r="8" fill="#000"/></svg>
+      <div class="p holder" data-f="holder"><div class="n" id="c-holder">Alex Rivera</div><div class="a" id="c-addr">1200 Main St</div></div>
+      <div class="p ckno" id="c-no">1042</div>
+      <div class="p lbl dlbl">Date</div>
+      <div class="fld" id="f-date" data-f="date"><span class="v"></span></div>
+      <div class="p lbl ptlbl">Pay to the<br>order of</div>
+      <div class="fld" id="f-payto" data-f="payto"><span class="v"></span></div>
+      <div class="p dollar">$</div>
+      <div class="fld" id="f-amt" data-f="amt"><span class="v"></span></div>
+      <div class="p lock"><svg viewBox="0 0 24 24" fill="none" stroke="#8a8a8a" stroke-width="2.4"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>Security features. Details on back.</div>
+      <div class="fld" id="f-words" data-f="words"><span class="v"></span></div>
+      <div class="p lbl dolw">Dollars</div>
+      <div class="p bank"><svg viewBox="0 0 40 40" fill="none" stroke="#00FF99" stroke-width="2.6"><circle cx="20" cy="20" r="17"/><circle cx="20" cy="20" r="10"/><path d="M20 10v20M10 20h20M13 13l14 14M27 13L13 27" stroke-width="1.8"/><circle cx="20" cy="20" r="3" fill="#00FF99"/></svg><div><b>VAULT BANK</b><br><small>Practice check · not a real bank</small></div></div>
+      <div class="p lbl mlbl">Memo</div>
+      <div class="fld" id="f-memo" data-f="memo"><span class="v"></span></div>
+      <div class="fld" id="f-sig" data-f="sig"><span class="v"></span></div>
+      <div class="p mp">MP</div>
+      <div class="p micr" id="c-micr" data-f="micr">⑆000000000⑆ 0000000000⑈ 1042</div>
+      <div class="p sticky" id="sticky" data-f="sticky" hidden></div>
+    </div>
+
+    <div class="back" id="back" hidden>
+      <div class="paper"></div>
+      <div class="endHead">ENDORSE HERE</div>
+      <div id="endZone">
+        <div class="endLines"><i style="top:40%"></i><i style="top:68%"></i><i style="top:96%"></i></div>
+        <div id="endText"></div>
+      </div>
+      <div class="doNot" id="doNot"><b>DO NOT WRITE, STAMP, OR SIGN BELOW THIS LINE</b><span>Reserved for financial institution use</span></div>
+      <div class="reserved"><div><svg viewBox="0 0 40 40" fill="none" stroke="#000" stroke-width="2"><circle cx="20" cy="20" r="17"/><circle cx="20" cy="20" r="10"/><path d="M20 10v20M10 20h20M13 13l14 14M27 13L13 27"/></svg>Bank processing area</div></div>
+      <div class="sec">Security features: microprint lines, padlock icon, background pattern, and an "MP" mark by the signature line. Missing or altered? Don't deposit it.</div>
+    </div>
+
+    </div>
+    <div class="zone-guide" id="guide" hidden><span id="guideTxt">Sign here</span></div>
+    <canvas id="ink"></canvas>
+    <div id="nib" hidden><svg viewBox="0 0 16 44" aria-hidden="true"><path d="M1 43 L3.5 33 L12.5 3.5 a2.6 2.6 0 0 1 3 1.4 L7 35 Z" fill="#00FF99" stroke="#000" stroke-width="1.4" stroke-linejoin="round"/><path d="M2.6 40 L5 34" stroke="#000" stroke-width="1"/></svg></div>
+  </main>
+
+  <footer class="controls" id="controls">
+    <div class="timer" id="timer" hidden><i id="timerBar"></i></div>
+    <div class="panel" id="panel"></div>
+  </footer>
+
+  <section class="overlay" id="scrTitle">
+    <div class="title-wrap">
+      <div class="title-bot" id="botTitle"></div>
+      <div class="title-copy">
+        <span class="eyebrow">MoneyBot Games presents</span>
+        <div id="logoBig"></div>
+        <p class="sub">Write a real check. Endorse one. Then work the teller window and catch the fakes before they cost you.</p>
+        <div class="missions" id="mSelect" role="radiogroup" aria-label="Choose a mission"></div>
+        <div class="sign-in">
+          <label class="label" for="nameIn"><span>Sign in · your name as you sign it</span></label>
+          <input class="sig-in" id="nameIn" maxlength="22" value="Alex Rivera" autocomplete="off" spellcheck="false">
+        </div>
+        <button class="btn primary big" id="startBtn">Start the run</button>
+        <span class="foot" id="bestLine"></span>
+      </div>
+    </div>
+  </section>
+
+  <section class="overlay" id="scrBrief" hidden>
+    <div class="brief">
+      <div class="brief-art"><span class="brief-num" id="bNum">01</span><div id="bArt"></div></div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <span class="eyebrow" id="bEyebrow">Mission</span>
+        <h2 id="bTitle">Cut the Check</h2>
+        <p class="sub" id="bText"></p>
+        <div class="howto" id="bHow"></div>
+        <div><button class="btn primary big" id="bGo">Let's go</button></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="overlay" id="scrEnd" hidden>
+    <div class="end">
+      <div class="badge-col"><div id="badge"></div><div class="grade"><span class="label">Grade</span><b id="eGrade">A</b></div></div>
+      <div style="display:flex;flex-direction:column;gap:14px;min-width:0">
+        <span class="eyebrow" id="eEyebrow">Run complete</span>
+        <h2 id="eRank">Ink Legend</h2>
+        <div class="scoreline">
+          <div class="glass"><span class="label">XP</span><b id="eXP">0</b></div>
+          <div class="glass"><span class="label">Accuracy</span><b id="eAcc">0%</b></div>
+          <div class="glass"><span class="label">Best</span><b id="eBest">0</b></div>
+        </div>
+        <div class="breakdown" id="breakdown"></div>
+        <ul class="recap">
+          <li class="glass"><i>1</i>Fill the date, the payee's exact name, the $ box, and the amount in words. Sign last, never first.</li>
+          <li class="glass"><i>2</i>Write cents as a fraction (50/100) and draw a line through the empty space.</li>
+          <li class="glass"><i>3</i>Never write a check to "Cash" and never sign a blank one.</li>
+          <li class="glass"><i>4</i>Endorse on the back, in the top strip, above the "do not write below this line" mark.</li>
+          <li class="glass"><i>5</i>Signature only at the teller. "For deposit only" for the ATM. Your bank's mobile wording for the app.</li>
+          <li class="glass"><i>6</i>Only the payee endorses. Amounts must match. Watch for checks older than six months and overpayment scams.</li>
+        </ul>
+        <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap"><button class="btn primary big" id="againBtn">Run it back</button><span class="foot">Educational content only. All checks, names, and banks are fictional.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="overlay" id="scrPause" hidden>
+    <div class="pause glass" role="dialog" aria-label="Paused">
+      <span class="eyebrow">Paused</span>
+      <h2>Take a breath.</h2>
+      <div class="pause-btns">
+        <button class="btn primary big" id="pResume" type="button">Resume</button>
+        <button class="btn ghost" id="pSound" type="button">Sound: On</button>
+        <button class="btn ghost" id="pRestart" type="button">Restart this mission</button>
+        <button class="btn ghost" id="pQuit" type="button">Quit to title</button>
+      </div>
+      <span class="foot">Esc also pauses and resumes.</span>
+    </div>
+  </section>
+</div>
+<canvas id="fx"></canvas>
+<script src="js/ink-it.js"></script>
+</body>
+</html>

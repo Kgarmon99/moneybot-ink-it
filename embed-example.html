@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ink It embed example · MoneyBot</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap">
+<style>
+  body{margin:0;background:#fff;color:#000;font-family:Inter,system-ui,sans-serif;padding:48px 16px}
+  .wrap{max-width:1040px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
+  .eyebrow{font-size:12px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:#6E6E6E}
+  h1{font-size:40px;font-weight:800;letter-spacing:-.03em;margin:0}
+  p{color:#6E6E6E;margin:0;max-width:60ch;line-height:1.5}
+  .frame{position:relative;width:100%;aspect-ratio:16/10;min-height:640px;border-radius:20px;overflow:hidden;background:#000}
+  .frame iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+  .log{font:13px/1.5 ui-monospace,Menlo,monospace;background:#f5f5f5;border:1px solid #E5E5E5;border-radius:14px;padding:12px 14px;min-height:44px}
+  .mobile-cta{display:none;background:#00FF99;color:#000;font-weight:600;border-radius:999px;padding:14px 22px;text-decoration:none;align-self:flex-start}
+  @media (max-width:640px){.frame{display:none}.mobile-cta{display:inline-block}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <span class="eyebrow">Live demo</span>
+  <h1>Try a MoneyBot game</h1>
+  <p>Write a real check, endorse one, then catch the fakes at the teller window. This is the same embed snippet as in the README.</p>
+
+  <div class="frame">
+    <iframe src="ink-it/" title="Ink It, a MoneyBot game" allow="autoplay; fullscreen" loading="lazy"></iframe>
+  </div>
+  <a class="mobile-cta" href="ink-it/">Play Ink It</a>
+
+  <span class="eyebrow">Events from the game</span>
+  <div class="log" id="log">Waiting for the player to start…</div>
+</div>
+<script>
+  window.addEventListener('message', (e) => {
+    if (!e.data || e.data.source !== 'moneybot-ink-it') return;
+    const line = document.createElement('div');
+    line.textContent = new Date().toLocaleTimeString() + '  ' + JSON.stringify(e.data);
+    const log = document.getElementById('log');
+    if (log.dataset.started !== '1') { log.textContent = ''; log.dataset.started = '1'; }
+    log.appendChild(line);
+  });
+</script>
+</body>
+</html>
